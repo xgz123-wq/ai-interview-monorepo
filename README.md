@@ -377,68 +377,106 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 
 ---
 
-### 系统截图
-1.Rag题库准备,导入面试题目并向量化
-<img width="1910" height="925" alt="1 导入题目" src="https://github.com/user-attachments/assets/e3625ef8-4f79-4300-8848-9b37d51b41e0" />
+## 系统截图
 
-<img width="1910" height="925" alt="2 向量化" src="https://github.com/user-attachments/assets/29b6dc4e-23ef-43ce-9fab-62fd88c5a0a6" />
+### 🎯 建议先看这 5 张图
 
+| # | 图 | 重点看什么 |
+|---|----|-----------|
+| 1 | 图 6 / 7 简历上传与解析 | AI 简历解析质量（PDF → 结构化数据） |
+| 2 | 图 9 / 10 面试场景 | 题库 RAG 出题 + 单题作答 + AI 评分 |
+| 3 | 图 13 / 14 / 15 Agent 匹配结果 | 候选人画像 + 岗位推荐 + 能力差距（Agent 工程化能力） |
+| 4 | 图 11 面试报告 | 结构化面试报告 |
+| 5 | 图 3 知识库 | 评分时召回的参考片段（知识库 RAG） |
 
+> 完整 17 张图按业务阶段分组如下。
 
-2.Rag知识库准备,上传知识文档并向量化
-<img width="1910" height="925" alt="3 知识库" src="https://github.com/user-attachments/assets/c0582c25-a833-4107-af30-916b5a916227" />
+### 阶段 1：数据准备（题库 / 知识库 / 岗位模板）
 
-<img width="1910" height="925" alt="4 知识库上传与向量化" src="https://github.com/user-attachments/assets/39f24e81-5c52-410d-97bd-d4c534778f03" />
+#### 1.1 题库 RAG 准备
 
-3.岗位模板(Agent将会参考岗位模板进行岗位匹配,增强匹配效果)
+**导入面试题并触发向量化**（Excel/CSV → pgvector 1024 维）
 
-<img width="1910" height="925" alt="5 岗位模板" src="https://github.com/user-attachments/assets/a913c109-2f30-44b4-8001-1380329ace1e" />
+![题库导入 — 批量上传面试题并指定岗位标签](https://github.com/user-attachments/assets/e3625ef8-4f79-4300-8848-9b37d51b41e0)
 
-4.简历上传与解析
-<img width="1910" height="925" alt="6 简历上传" src="https://github.com/user-attachments/assets/7ed998f7-ccae-4805-bcb3-8f966d184d63" />
+**Celery Worker 重建索引进度**
 
-<img width="1910" height="925" alt="7 简历解析" src="https://github.com/user-attachments/assets/dfc489cc-3215-489d-9549-8f44334b92c5" />
+![题库向量化 — Celery 异步处理 embedding 进度](https://github.com/user-attachments/assets/29b6dc4e-23ef-43ce-9fab-62fd88c5a0a6)
 
+#### 1.2 知识库 RAG 准备
 
-### 两种面试途径，一个是简历解析完毕后直接启动面试，另一个是让Agent进行岗位匹配，启动面试，针对性更强
+**上传 Markdown / PDF / DOCX 文档**
 
-### 启动面试途径1,直接开始
+![知识库管理 — 文档列表与状态](https://github.com/user-attachments/assets/c0582c25-a833-4107-af30-916b5a916227)
 
-1.解析完成后，点击开始面试
-<img width="689" height="1211" alt="8 解析结果" src="https://github.com/user-attachments/assets/7e4ca082-61c8-4c99-aa71-18f56a45bbc5" />
+**自动切片 + DashScope Embedding + 写 pgvector**
 
-2.开始面试
-<img width="2552" height="1316" alt="9 开始面试" src="https://github.com/user-attachments/assets/25eb8b95-6481-43f8-91ee-2e81c1812e06" />
+![知识库上传与向量化 — Celery 任务状态](https://github.com/user-attachments/assets/39f24e81-5c52-410d-97bd-d4c534778f03)
 
-3.面试场景(题目来源于Rag题库)
-<img width="2552" height="1316" alt="10 面试场景" src="https://github.com/user-attachments/assets/eba566a4-cca0-4f1f-a8cd-2e260ae59f4c" />
+#### 1.3 岗位模板（Agent 匹配依赖库）
 
-4.面试报告生成
-<img width="2552" height="1316" alt="11 生成报告" src="https://github.com/user-attachments/assets/201f027c-10e7-4d60-9da4-b4c1e9b50147" />
+**8 条岗位模板**：Java 后端 / Python 后端 / Vue 前端 / 算法 / 测试 / 数据分析等
 
+![岗位模板管理 — Agent 调用 match_positions 时的匹配库](https://github.com/user-attachments/assets/a913c109-2f30-44b4-8001-1380329ace1e)
 
+### 阶段 2：简历上传与 AI 解析
 
-### 启动面试途径2,通过Agent启动
+**上传 PDF 简历 → 后端 AI 解析 → 落库**
 
-1.Agent读取已经解析好的简历，重新构建更精细的候选人画像，从而精准匹配后台预先准备好的岗位模板
+![简历上传 — 支持 PDF 格式](https://github.com/user-attachments/assets/7ed998f7-ccae-4805-bcb3-8f966d184d63)
 
-<img width="2552" height="1316" alt="12 Agent匹配" src="https://github.com/user-attachments/assets/61c457b3-cd40-4e17-8ff0-7585e45d0108" />
+**结构化解析结果**（技能 / 经历 / 项目 / 教育背景）
 
-2.候选人画像汇总与建议，以及岗位匹配结果
-<img width="2552" height="1316" alt="13 匹配结果1" src="https://github.com/user-attachments/assets/3f093e0d-a834-4a85-9e5c-d663749f5169" />
+![简历解析结果 — DeepSeek 输出的结构化字段](https://github.com/user-attachments/assets/dfc489cc-3215-489d-9549-8f44334b92c5)
 
-<img width="2552" height="1316" alt="14 匹配结果2" src="https://github.com/user-attachments/assets/3e45ae29-54fd-41da-ad40-69c776c0f86e" />
+### 阶段 3：直接开始面试（途径 1）
 
-<img width="2552" height="1316" alt="15 匹配结果3" src="https://github.com/user-attachments/assets/8ea95bd4-9408-4cf8-a036-bfe28c857359" />
+> 适用场景：候选人已有明确目标岗位，简历解析后直接发起专项面试。
 
+**解析完成后点击开始面试**
 
-3.进入面试(Agent调用面试功能)
+![解析结果页 — 展示候选人画像与"开始面试"入口](https://github.com/user-attachments/assets/7e4ca082-61c8-4c99-aa71-18f56a45bbc5)
 
-<img width="2552" height="1316" alt="16 启动并进入面试" src="https://github.com/user-attachments/assets/697d3683-e85e-49df-81ee-d375fbc17b78" />
+**面试会话页**（题库 RAG 出题）
 
-4.面试记录
+![开始面试 — 多轮面试列表与当前题](https://github.com/user-attachments/assets/25eb8b95-6481-43f8-91ee-2e81c1812e06)
 
-<img width="2552" height="1316" alt="17 面试记录" src="https://github.com/user-attachments/assets/0bc91b00-196c-4d65-ba5e-591ab489876a" />
+**单题作答 + AI 流式评分**（评分时注入 `reference_answer` / `key_points` / 知识库召回片段）
+
+![面试场景 — 用户作答 + SSE 流式评分](https://github.com/user-attachments/assets/eba566a4-cca0-4f1f-a8cd-2e260ae59f4c)
+
+**整场面试报告**（单题得分 + 总结 + 改进建议）
+
+![面试报告 — 总体评分与分项反馈](https://github.com/user-attachments/assets/201f027c-10e7-4d60-9da4-b4c1e9b50147)
+
+### 阶段 4：Agent 岗位匹配后开始面试（途径 2）
+
+> 适用场景：候选人不确定目标方向，让 Agent 基于简历做岗位推荐，再一键发起面试。
+> 路径：`get_parsed_resume` → `build_candidate_profile` → `match_positions` → `get_position_interview_focus` → `start_mock_interview`
+
+**Agent 读取已解析简历，重建候选人画像**
+
+![Agent 启动 — 简历画像重建中](https://github.com/user-attachments/assets/61c457b3-cd40-4e17-8ff0-7585e45d0108)
+
+**画像汇总 + 能力差距 + 下一步建议**
+
+![Agent 匹配结果 1 — 候选人画像总览](https://github.com/user-attachments/assets/3f093e0d-a834-4a85-9e5c-d663749f5169)
+
+**匹配岗位列表**（打分明细 + 匹配理由）
+
+![Agent 匹配结果 2 — 岗位打分明细](https://github.com/user-attachments/assets/3e45ae29-54fd-41da-ad40-69c776c0f86e)
+
+**推荐理由 + 一键进入面试**
+
+![Agent 匹配结果 3 — 推荐理由与面试入口](https://github.com/user-attachments/assets/8ea95bd4-9408-4cf8-a036-bfe28c857359)
+
+**Agent 调用 `start_mock_interview` 工具进入面试**
+
+![Agent 启动并进入面试 — 工具调用链终点](https://github.com/user-attachments/assets/697d3683-e85e-49df-81ee-d375fbc17b78)
+
+**面试历史记录**（管理员后台可查）
+
+![面试记录 — 候选人历史面试列表](https://github.com/user-attachments/assets/0bc91b00-196c-4d65-ba5e-591ab489876a)
 
 
 
