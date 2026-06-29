@@ -1,0 +1,45 @@
+# ============================================================
+# 根目录 .gitignore — 简历仓库 / monorepo 统一规则
+# ============================================================
+
+# ----- 个人/工具配置（不进库） -----
+.claude/
+.codegraph/
+.vscode/
+.idea/
+
+# ----- 通用 -----
+*.log
+*.db
+*.sqlite
+*.sqlite3
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# ----- Python -----
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache/
+**/.mypy_cache/
+**/.venv/
+**/venv/
+**/env/
+
+# ----- Node / Vue -----
+**/node_modules/
+**/dist/
+**/.vite/
+**/coverage/
+
+# ----- 后端关键风险：密钥 / 用户上传 / 离线二进制 / 调度临时文件 -----
+**/.env
+**/uploads/
+**/celerybeat-schedule.*
+**/docker-compose-linux-x86_64
+
+# ----- 显式允许 .env.example 入库 -----
+!.env.example
