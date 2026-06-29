@@ -261,51 +261,117 @@ ai-interview/
 
 ## 启动方式
 
-### 1. 启动后端
+> 详细部署（VM 准备、Docker 加速、共享文件夹、镜像加速）见 [ai-interview-backend/部署文档.md](ai-interview-backend/部署文档.md)；
+> 从旧版 `ai-interview` 升级并保留数据见 [ai-interview-backend/升级部署文档.md](ai-interview-backend/升级部署文档.md)。
 
-进入：
+### 前置条件
+
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| Docker + Docker Compose V2 | 最新 | 后端容器编排（项目内含 `docker-compose-linux-x86_64` 离线包） |
+| Node.js | 18+ | 前端 Vite dev server |
+| **DeepSeek API Key** | - | 简历解析 / 出题 / 评分 / 报告（[申请](https://platform.deepseek.com/)） |
+| **DashScope API Key** | - | 题库/知识库 Embedding（[申请](https://dashscope.console.aliyun.com/)，开通"通用文本向量"） |
+
+少了 `DASHSCOPE_API_KEY` 时，AI 闭环跑不通——题库和知识库向量化全部失败。
+
+### 1. 首次启动后端
 
 ```bash
 cd ai-interview-backend
-```
 
-使用 Docker Compose 启动：
+# 1) 复制环境变量模板,并填入 DEEPSEEK_API_KEY / DASHSCOPE_API_KEY
+cp .env.example .env
+# Windows 端用编辑器打开 .env,保存后 VM 端实时生效
 
-```bash
+# 2) 构建并启动所有服务(app / celery / pg / redis,首次需要拉镜像)
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+# 3) 等所有容器 Up (healthy) 后,跑迁移建表
+docker compose exec app alembic upgrade head
+# 期望输出:b3a4c5d6e7f8 (head),13 张表
+
+# 4) 灌岗位模板(岗位匹配 Agent 的依赖库,不灌则 Agent 跑空)
+docker compose exec app python scripts/seed_position_templates.py
+
+# 5) 创建后台管理员账号
+docker compose exec app python scripts/create_first_admin.py
+# 默认账号:admin@ai-interview.com / ai-interview&admin
+
+# 6) 健康检查
+curl http://localhost:8006/api/v1/config/health
+# 期望:{"code":200,"message":"Success","data":{"status":"healthy"}}
 ```
 
-### 2. 启动用户端前端
-
-进入：
+### 2. 启动用户端前端(端口 3000)
 
 ```bash
 cd ai-interview-frontend
-```
-
-安装依赖并启动：
-
-```bash
 npm install
 npm run dev
 ```
 
-### 3. 启动管理端前端
+`vite.config.js` 中 `/api` 与 `/uploads` 已 proxy 转发到后端 `:8006`,无需额外配置。
 
-进入：
+### 3. 启动管理端前端(端口 3001,新开终端)
 
 ```bash
 cd ai-interview-admin
-```
-
-安装依赖并启动：
-
-```bash
 npm install
 npm run dev
 ```
 
-> 说明：实际运行前需要补充 `.env` 配置，例如数据库、Redis、DeepSeek、DashScope 等相关参数。
+### 访问地址
+
+| 端 | 地址 |
+|----|------|
+| 用户端 | http://localhost:3000 |
+| 后台管理 | http://localhost:3001 |
+| 后端 API 文档 | http://localhost:8006/docs |
+| 后端健康检查 | http://localhost:8006/api/v1/config/health |
+| Flower(Celery 监控,可选) | http://localhost:5555(需 `--profile monitoring` 启动) |
+
+### 端口一览
+
+| 服务 | 端口 |
+|------|------|
+| FastAPI 后端 | 8006 |
+| PostgreSQL(含 pgvector) | **5435**(开发标准) |
+| Redis | 6382 |
+| 用户端 / 管理端 | 3000 / 3001 |
+| Nginx | 8080(dev 默认关闭) |
+
+### 默认账号
+
+| 角色 | 邮箱 | 密码 |
+|------|------|------|
+| 后台管理员 | `admin@ai-interview.com` | `ai-interview&admin` |
+
+普通用户通过用户端注册页面自行注册(邮箱 + 密码,无需邮箱验证)。
+
+### 日常启动速查
+
+后端容器配置了 `restart: unless-stopped`,VM 重启后会自动恢复,日常只需:
+
+```bash
+# 启动后端(已在运行时此命令幂等)
+cd ai-interview-backend
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# 关闭后端
+docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+# 注:不要加 -v,否则数据库卷会被删,数据全丢
+```
+
+前端每次 `npm run dev` 即可。
+
+### 初始化 RAG 数据(管理员首次操作)
+
+完成上面三步后,登录后台(http://localhost:3001)完成 RAG 初始化,否则出题/评分会降级:
+
+1. **题库管理** → 批量导入面试题(字段:题目 / 参考答案 / 采分点 / 岗位标签 / 难度)→ 重建索引
+2. **知识库管理** → 上传 Markdown / PDF / DOCX → 系统自动切片 + DashScope Embedding
+3. **岗位模板管理** → 验证 10 条模板已 seed(可手动微调)
 
 
 
